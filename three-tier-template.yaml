@@ -5,7 +5,7 @@ Parameters:
   EnvironmentName:
     Description: Environment name
     Type: String
-    Default: Production
+    Default: glps_bolt_CFT
   
   VpcCIDR:
     Description: CIDR block for VPC
@@ -284,7 +284,7 @@ Resources:
     Type: AWS::EC2::LaunchTemplate
     Properties:
       LaunchTemplateData:
-        ImageId: ami-0c55b159cbfafe1f0  # Amazon Linux 2 AMI ID
+        ImageId: ami-021e165d8c4ff761d  # Amazon Linux 2 AMI ID
         InstanceType: t3.micro
         SecurityGroupIds:
           - !Ref WebServerSecurityGroup
@@ -300,7 +300,7 @@ Resources:
     Type: AWS::EC2::LaunchTemplate
     Properties:
       LaunchTemplateData:
-        ImageId: ami-0c55b159cbfafe1f0  # Amazon Linux 2 AMI ID
+        ImageId: ami-021e165d8c4ff761d  # Amazon Linux 2 AMI ID
         InstanceType: t3.micro
         SecurityGroupIds:
           - !Ref AppServerSecurityGroup
