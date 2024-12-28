@@ -1,11 +1,11 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: '3-tier architecture with VPC, Web, App and Database tiers'
+Description: '2-tier architecture with VPC, Web and App tiers'
 
 Parameters:
   EnvironmentName:
     Description: Environment name
     Type: String
-    Default: glps_bolt_CFT
+    Default: Production
   
   VpcCIDR:
     Description: CIDR block for VPC
@@ -27,26 +27,6 @@ Parameters:
   PrivateSubnet2CIDR:
     Type: String
     Default: 10.0.4.0/24
-  
-  DBSubnet1CIDR:
-    Type: String
-    Default: 10.0.5.0/24
-  
-  DBSubnet2CIDR:
-    Type: String
-    Default: 10.0.6.0/24
-
-  DBName:
-    Type: String
-    Default: myapp
-  
-  DBUsername:
-    Type: String
-    NoEcho: true
-  
-  DBPassword:
-    Type: String
-    NoEcho: true
 
 Resources:
   # VPC
@@ -117,27 +97,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName}-PrivateSubnet2
-
-  # Database Subnets
-  DBSubnet1:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      AvailabilityZone: !Select [0, !GetAZs '']
-      CidrBlock: !Ref DBSubnet1CIDR
-      Tags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName}-DBSubnet1
-
-  DBSubnet2:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      AvailabilityZone: !Select [1, !GetAZs '']
-      CidrBlock: !Ref DBSubnet2CIDR
-      Tags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName}-DBSubnet2
 
   # NAT Gateway
   NatGateway1EIP:
@@ -211,41 +170,6 @@ Resources:
           ToPort: 8080
           SourceSecurityGroupId: !Ref WebServerSecurityGroup
 
-  DBSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Security group for database
-      VpcId: !Ref VPC
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 3306
-          ToPort: 3306
-          SourceSecurityGroupId: !Ref AppServerSecurityGroup
-
-  # Database Subnet Group
-  DBSubnetGroup:
-    Type: AWS::RDS::DBSubnetGroup
-    Properties:
-      DBSubnetGroupDescription: Subnet group for RDS
-      SubnetIds:
-        - !Ref DBSubnet1
-        - !Ref DBSubnet2
-
-  # RDS Instance
-  Database:
-    Type: AWS::RDS::DBInstance
-    Properties:
-      DBName: !Ref DBName
-      Engine: mysql
-      MasterUsername: !Ref DBUsername
-      MasterUserPassword: !Ref DBPassword
-      DBInstanceClass: db.t3.micro
-      AllocatedStorage: '20'
-      DBSubnetGroupName: !Ref DBSubnetGroup
-      VPCSecurityGroups:
-        - !Ref DBSecurityGroup
-      PubliclyAccessible: false
-
   # Application Load Balancer
   ApplicationLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -284,15 +208,15 @@ Resources:
     Type: AWS::EC2::LaunchTemplate
     Properties:
       LaunchTemplateData:
-        ImageId: ami-021e165d8c4ff761d  # Amazon Linux 2 AMI ID
+        ImageId: ami-02ddb77f8f93ca4ca  # RHEL 9 AMI ID
         InstanceType: t3.micro
         SecurityGroupIds:
           - !Ref WebServerSecurityGroup
         UserData:
           Fn::Base64: !Sub |
             #!/bin/bash
-            yum update -y
-            yum install -y httpd
+            dnf update -y
+            dnf install -y httpd
             systemctl start httpd
             systemctl enable httpd
 
@@ -300,15 +224,15 @@ Resources:
     Type: AWS::EC2::LaunchTemplate
     Properties:
       LaunchTemplateData:
-        ImageId: ami-021e165d8c4ff761d  # Amazon Linux 2 AMI ID
+        ImageId: ami-02ddb77f8f93ca4ca  # RHEL 9 AMI ID
         InstanceType: t3.micro
         SecurityGroupIds:
           - !Ref AppServerSecurityGroup
         UserData:
           Fn::Base64: !Sub |
             #!/bin/bash
-            yum update -y
-            yum install -y java-11-amazon-corretto
+            dnf update -y
+            dnf install -y java-11-openjdk
 
   # Auto Scaling Groups
   WebServerASG:
@@ -347,7 +271,3 @@ Outputs:
   VPCId:
     Description: VPC ID
     Value: !Ref VPC
-
-  DBEndpoint:
-    Description: Database endpoint
-    Value: !GetAtt Database.Endpoint.Address
